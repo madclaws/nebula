@@ -1,12 +1,26 @@
 extern crate glfw;
 extern crate gl;
 use self::glfw::{Action, Context, Key};
+use std::mem;
+use self::gl::types::*;
+use std::os::raw::c_void;
+use std::ffi::CString;
+use std::ptr;
 
 use std::sync::mpsc::Receiver;
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
 
+const VERTEX_SHADER_SOURCE: &str = r#"
+    #version 330 core
+    layout (location = 0) in vec3 aPos;
+    void main() {
+        gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    }
+"#;
+
+#[allow(non_snake_case)]
 fn main() {
     // glfw initialize and configuration
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -27,6 +41,29 @@ fn main() {
     // Load all OpenGL function pointers
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _); 
 
+    // Setting up vertex data for triangle
+    let vertices: [f32;9] = [
+        -0.5, -0.5, 0.0,
+        0.5, -0.5, 0.0,
+        0.0, 0.5, 0.0
+    ];
+
+    unsafe {
+        let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
+        let c_vertex_source = CString::new(VERTEX_SHADER_SOURCE.as_bytes()).unwrap();
+        gl::ShaderSource(vertex_shader, 1, &c_vertex_source.as_ptr(), ptr::null());
+        gl::CompileShader(vertex_shader);
+
+        // TODO: Validating the shader compilation
+        let mut VBO = 0;
+        gl::GenBuffers(1, &mut VBO);
+        gl::BindBuffer(gl::ARRAY_BUFFER, VBO);
+        gl::BufferData(gl::ARRAY_BUFFER, 
+            vertices.len() as isize * mem::size_of::<GLfloat>() as GLsizeiptr,
+            &vertices[0] as *const f32 as *const c_void,
+            gl::STATIC_DRAW 
+        )
+    }
     // render loop
     while !window.should_close() {
         unsafe {
