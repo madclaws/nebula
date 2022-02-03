@@ -57,6 +57,18 @@ fn main() {
         0.0, 0.5, 0.0
     ];
 
+    let ebo_vertices: [f32;12] = [
+        0.5,  0.5, 0.0,  // top right
+        0.5, -0.5, 0.0,  // bottom right
+       -0.5, -0.5, 0.0,  // bottom left
+       -0.5,  0.5, 0.0   // top left
+    ];
+
+    let indices: [i32; 6] = [
+        0, 1, 3,
+        1, 2, 3
+    ];
+
     let (shader_program, VAO) = unsafe {
         // vertex shader
         let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
@@ -103,21 +115,24 @@ fn main() {
 
         let mut VBO = 0;
         let mut VAO = 0;
-        gl::GenBuffers(1, &mut VBO);
-        gl::GenVertexArrays(1, &mut VAO);
+        let mut EBO = 0;
+
+        // gl::GenBuffers(1, &mut VBO);
+        // gl::GenBuffers(1, &mut EBO);
+        // gl::GenVertexArrays(1, &mut VAO);
         
-        gl::BindVertexArray(VAO);
-        gl::BindBuffer(gl::ARRAY_BUFFER, VBO);
-        gl::BufferData(gl::ARRAY_BUFFER, 
-            vertices.len() as isize * mem::size_of::<GLfloat>() as GLsizeiptr,
-            &vertices[0] as *const f32 as *const c_void,
-            gl::STATIC_DRAW 
-        );
-        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
-        gl::EnableVertexAttribArray(0);
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        gl::BindVertexArray(0);
-        (shader_program, VAO)
+        // gl::BindVertexArray(VAO);
+        // gl::BindBuffer(gl::ARRAY_BUFFER, VBO);
+        // gl::BufferData(gl::ARRAY_BUFFER, 
+        //     vertices.len() as isize * mem::size_of::<GLfloat>() as GLsizeiptr,
+        //     &vertices[0] as *const f32 as *const c_void,
+        //     gl::STATIC_DRAW 
+        // );
+        // gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
+        // gl::EnableVertexAttribArray(0);
+        // gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        // gl::BindVertexArray(0);
+        (shader_program, render_rectangle(&mut EBO, &mut VBO, &mut VAO, &ebo_vertices, &indices))
     };
     // render loop
     while !window.should_close() {
@@ -127,7 +142,7 @@ fn main() {
 
             gl::UseProgram(shader_program);
             gl::BindVertexArray(VAO);
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
         }
 
         process_input(&mut window, &events);
@@ -147,4 +162,56 @@ fn process_input(window: &mut glfw::Window, events: &Receiver<(f64, glfw::Window
         }
 
     }
+}
+
+#[allow(non_snake_case)]
+fn render_triangle(VBO: &mut u32, VAO: &mut u32, vertices: &[f32]) -> u32 {
+    unsafe {
+        gl::GenBuffers(1, VBO);
+        // gl::GenBuffers(1, &mut EBO);
+        gl::GenVertexArrays(1, VAO);
+        
+        gl::BindVertexArray(*VAO);
+        gl::BindBuffer(gl::ARRAY_BUFFER, *VBO);
+        gl::BufferData(gl::ARRAY_BUFFER, 
+            vertices.len() as isize * mem::size_of::<GLfloat>() as GLsizeiptr,
+            &vertices[0] as *const f32 as *const c_void,
+            gl::STATIC_DRAW 
+        );
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
+        gl::EnableVertexAttribArray(0);
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        gl::BindVertexArray(0);
+    }
+    *VAO
+}
+
+#[allow(non_snake_case)]
+fn render_rectangle(VBO: &mut u32, EBO: &mut u32, VAO: &mut u32, vertices: &[f32], indices: &[i32]) -> u32 {
+    unsafe {
+        gl::GenBuffers(1, VBO);
+        gl::GenBuffers(1, EBO);
+        gl::GenVertexArrays(1, VAO);
+        
+        gl::BindVertexArray(*VAO);
+        gl::BindBuffer(gl::ARRAY_BUFFER, *VBO);
+        gl::BufferData(gl::ARRAY_BUFFER, 
+            vertices.len() as isize * mem::size_of::<GLfloat>() as GLsizeiptr,
+            &vertices[0] as *const f32 as *const c_void,
+            gl::STATIC_DRAW 
+        );
+
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, *EBO);
+        gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, 
+            indices.len() as isize * mem::size_of::<GLfloat>() as GLsizeiptr,
+            &indices[0] as *const i32 as *const c_void,
+            gl::STATIC_DRAW 
+        );
+
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
+        gl::EnableVertexAttribArray(0);
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        gl::BindVertexArray(0);
+    }
+    *VAO
 }
