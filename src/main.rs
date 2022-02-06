@@ -29,6 +29,14 @@ const FRAGMENT_SHADER_SOURCE: &str = r#"
     }
 "#;
 
+const FRAGMENT_SHADER_SOURCE_YELLOW: &str = r#"
+    #version 330 core
+    out vec4 FragColor;
+    void main() {
+        FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);
+    }
+"#;
+
 #[allow(non_snake_case)]
 fn main() {
     // glfw initialize and configuration
@@ -57,6 +65,27 @@ fn main() {
         0.0, 0.5, 0.0
     ];
 
+    let vertices_a: [f32;9] = [
+        -1.0, -0.5, 0.0,
+        0.0, -0.5, 0.0,
+        -0.5, 0.5, 0.0
+    ];
+
+    let vertices_b: [f32; 9] = [
+        0.0, -0.5, 0.0,
+        1.0, -0.5, 0.0,
+        0.5, 0.5, 0.0
+    ];
+
+    let double_vertices: [f32;18] = [
+        -1.0, -0.5, 0.0,
+        0.0, -0.5, 0.0,
+        -0.5, 0.5, 0.0,
+        0.0, -0.5, 0.0,
+        1.0, -0.5, 0.0,
+        0.5, 0.5, 0.0
+    ];
+
     let ebo_vertices: [f32;12] = [
         0.5,  0.5, 0.0,  // top right
         0.5, -0.5, 0.0,  // bottom right
@@ -69,71 +98,39 @@ fn main() {
         1, 2, 3
     ];
 
-    let (shader_program, VAO) = unsafe {
-        // vertex shader
-        let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
-        let c_vertex_source = CString::new(VERTEX_SHADER_SOURCE.as_bytes()).unwrap();
-        gl::ShaderSource(vertex_shader, 1, &c_vertex_source.as_ptr(), ptr::null());
-        gl::CompileShader(vertex_shader);
+    let mut VBO = 0;
+    let mut VAO = 0;
+    let mut EBO = 0;
 
-        let mut success = gl::FALSE as GLint;
-        let mut info_log: Vec<u8> = Vec::with_capacity(512);
-        info_log.set_len(512 - 1);
-        gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
-        if success != gl::TRUE as GLint {
-            gl::GetShaderInfoLog(vertex_shader, 512, ptr::null_mut(), info_log.as_mut_ptr() as *mut GLchar);
-            println!("ERROR::SHADER::VERTEX::COMPILATION_FAILED {:?}", str::from_utf8(&info_log).unwrap());
-        }
+    let mut VBO_B = 0;
+    let mut VAO_B = 0;
 
-        //  fragment shader
-        let fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
-        let c_fragment_source = CString::new(FRAGMENT_SHADER_SOURCE.as_bytes()).unwrap();
-        gl::ShaderSource(fragment_shader, 1, &c_fragment_source.as_ptr(), ptr::null());
-        gl::CompileShader(fragment_shader);
-        let mut success_fragment = gl::FALSE as GLint;
-        let mut info_log_fragment: Vec<u8> = Vec::with_capacity(512);
-        info_log_fragment.set_len(512 - 1);
-        gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success_fragment);
-        if success_fragment != gl::TRUE as GLint {
-            gl::GetShaderInfoLog(fragment_shader, 512, ptr::null_mut(), info_log_fragment.as_mut_ptr() as *mut GLchar);
-            println!("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED {:?}", str::from_utf8(&info_log_fragment).unwrap());
-        }
+    let shader_program = create_shader_program(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE);
+    let shader_program_2 = create_shader_program(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE_YELLOW);
+        /* 
+            Rendering a single triangle
+            render_triangle(&mut VBO, &mut VAO, &vertices);
+            gl::DrawArrays(gl::TRIANGLES, 0, 3); // in render loop
+        */
 
-        // Shader program
-        let shader_program = gl::CreateProgram();
-        gl::AttachShader(shader_program, vertex_shader);
-        gl::AttachShader(shader_program, fragment_shader);
-        gl::LinkProgram(shader_program);
-        gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success_fragment);
-        if success_fragment != gl::TRUE as GLint {
-            gl::GetProgramInfoLog(shader_program, 512, ptr::null_mut(), info_log_fragment.as_mut_ptr() as *mut GLchar);
-            println!("ERROR::SHADER::PROGRAM::COMPILATION_FAILED {:?}", str::from_utf8(&info_log_fragment).unwrap());
-        }
+        /* 
+        Rendering 2 triangles with 6 vertices all using single VBO and VAO.
 
-        gl::DeleteShader(vertex_shader);
-        gl::DeleteShader(fragment_shader);
-
-        let mut VBO = 0;
-        let mut VAO = 0;
-        let mut EBO = 0;
-
-        // gl::GenBuffers(1, &mut VBO);
-        // gl::GenBuffers(1, &mut EBO);
-        // gl::GenVertexArrays(1, &mut VAO);
+        (shader_program, render_triangle(&mut VBO, &mut VAO, &double_vertices))
         
-        // gl::BindVertexArray(VAO);
-        // gl::BindBuffer(gl::ARRAY_BUFFER, VBO);
-        // gl::BufferData(gl::ARRAY_BUFFER, 
-        //     vertices.len() as isize * mem::size_of::<GLfloat>() as GLsizeiptr,
-        //     &vertices[0] as *const f32 as *const c_void,
-        //     gl::STATIC_DRAW 
-        // );
-        // gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
-        // gl::EnableVertexAttribArray(0);
-        // gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-        // gl::BindVertexArray(0);
-        (shader_program, render_rectangle(&mut EBO, &mut VBO, &mut VAO, &ebo_vertices, &indices))
-    };
+        For that GlSize in gl::DrawArrays in the render loop should be 6 
+        gl::DrawArrays(gl::TRIANGLES, 0, 6);
+        */
+
+        
+        // Rendering rectangle using EBO.
+        // render_rectangle(&mut EBO, &mut VBO, &mut VAO, &ebo_vertices, &indices);
+        // gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null()); // in render loop
+        
+
+        // Rendering 2 triangles using different VAO and VBO
+        render_triangle(&mut VBO, &mut VAO, &vertices_a);
+        render_triangle(&mut VBO_B, &mut VAO_B, &vertices_b);
     // render loop
     while !window.should_close() {
         unsafe {
@@ -142,7 +139,13 @@ fn main() {
 
             gl::UseProgram(shader_program);
             gl::BindVertexArray(VAO);
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::BindVertexArray(VAO_B);
+            gl::UseProgram(shader_program_2);
+
+            // gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+
         }
 
         process_input(&mut window, &events);
@@ -165,7 +168,7 @@ fn process_input(window: &mut glfw::Window, events: &Receiver<(f64, glfw::Window
 }
 
 #[allow(non_snake_case)]
-fn render_triangle(VBO: &mut u32, VAO: &mut u32, vertices: &[f32]) -> u32 {
+fn render_triangle(VBO: &mut u32, VAO: &mut u32, vertices: &[f32])  {
     unsafe {
         gl::GenBuffers(1, VBO);
         // gl::GenBuffers(1, &mut EBO);
@@ -183,7 +186,7 @@ fn render_triangle(VBO: &mut u32, VAO: &mut u32, vertices: &[f32]) -> u32 {
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
-    *VAO
+    // *VAO
 }
 
 #[allow(non_snake_case)]
@@ -214,4 +217,54 @@ fn render_rectangle(VBO: &mut u32, EBO: &mut u32, VAO: &mut u32, vertices: &[f32
         gl::BindVertexArray(0);
     }
     *VAO
+}
+
+fn create_shader_program(vertex_shader_src: &str, fragment_shader_src: &str) -> u32 {
+    // vertex shader
+    unsafe {
+        let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
+        let c_vertex_source = CString::new(vertex_shader_src.as_bytes()).unwrap();
+        gl::ShaderSource(vertex_shader, 1, &c_vertex_source.as_ptr(), ptr::null());
+        gl::CompileShader(vertex_shader);
+    
+        let mut success = gl::FALSE as GLint;
+        let mut info_log: Vec<u8> = Vec::with_capacity(512);
+        info_log.set_len(512 - 1);
+        gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
+        if success != gl::TRUE as GLint {
+            gl::GetShaderInfoLog(vertex_shader, 512, ptr::null_mut(), info_log.as_mut_ptr() as *mut GLchar);
+            println!("ERROR::SHADER::VERTEX::COMPILATION_FAILED {:?}", str::from_utf8(&info_log).unwrap());
+        }
+    
+        //  fragment shader
+        let fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
+        let c_fragment_source = CString::new(fragment_shader_src.as_bytes()).unwrap();
+        gl::ShaderSource(fragment_shader, 1, &c_fragment_source.as_ptr(), ptr::null());
+        gl::CompileShader(fragment_shader);
+        let mut success_fragment = gl::FALSE as GLint;
+        let mut info_log_fragment: Vec<u8> = Vec::with_capacity(512);
+        info_log_fragment.set_len(512 - 1);
+        gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success_fragment);
+        if success_fragment != gl::TRUE as GLint {
+            gl::GetShaderInfoLog(fragment_shader, 512, ptr::null_mut(), info_log_fragment.as_mut_ptr() as *mut GLchar);
+            println!("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED {:?}", str::from_utf8(&info_log_fragment).unwrap());
+        }
+    
+        // Shader program
+        let shader_program = gl::CreateProgram();
+        gl::AttachShader(shader_program, vertex_shader);
+        gl::AttachShader(shader_program, fragment_shader);
+        gl::LinkProgram(shader_program);
+        gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success_fragment);
+        if success_fragment != gl::TRUE as GLint {
+            gl::GetProgramInfoLog(shader_program, 512, ptr::null_mut(), info_log_fragment.as_mut_ptr() as *mut GLchar);
+            println!("ERROR::SHADER::PROGRAM::COMPILATION_FAILED {:?}", str::from_utf8(&info_log_fragment).unwrap());
+        }
+    
+        gl::DeleteShader(vertex_shader);
+        gl::DeleteShader(fragment_shader);
+        
+        shader_program
+    }
+    
 }
