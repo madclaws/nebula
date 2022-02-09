@@ -11,7 +11,7 @@ mod utils;
 use utils::App;
 mod dual;
 use std::sync::mpsc::Receiver;
-use dual::*;
+// use dual;
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 800;
 
@@ -23,7 +23,8 @@ fn main() {
     
     // render loop
     while !window.should_close() {
-        app.render();
+        let time_value = glfw.get_time();
+        app.render(time_value);
         process_input(&mut window, &events);
         window.swap_buffers();
         glfw.poll_events();

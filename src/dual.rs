@@ -8,6 +8,8 @@ use std::os::raw::c_void;
 use self::gl::types::*;
 use std::mem;
 use std::ptr;
+use std::time::{SystemTime, UNIX_EPOCH};
+use std::ffi::CString;
 
 pub struct Dual{
     vertices_a: [f32;9],
@@ -44,6 +46,34 @@ const FRAGMENT_SHADER_SOURCE_YELLOW: &str = r#"
     }
 "#;
 
+const VERTEX_SHADER_SOURCE_DARK_RED: &str = r#"
+    #version 330 core
+    layout (location = 0) in vec3 aPos;
+    out vec4 vertexColor;
+    void main() {
+        gl_Position = vec4(aPos, 1.0);
+        vertexColor = vec4(0.5, 0.0, 0.0, 1.0);
+    }
+"#;
+
+const FRAGMENT_SHADER_SOURCE_B: &str = r#"
+    #version 330 core
+    out vec4 FragColor;
+    in vec4 vertexColor;
+    void main() {
+        FragColor = vertexColor;
+    }
+"#;
+
+const FRAGMENT_SHADER_SOURCE_UNIFORM: &str = r#"
+    #version 330 core
+    out vec4 FragColor;
+    uniform vec4 ourColor;
+    void main() {
+        FragColor = ourColor;
+    }
+"#;
+
 impl App for Dual {
     fn create() -> Self{
         let vertices_a: [f32; 9] = [-1.0, -0.5, 0.0, 0.0, -0.5, 0.0, -0.5, 0.5, 0.0];
@@ -57,7 +87,7 @@ impl App for Dual {
         let mut VBO_B = 0;
         let mut VAO_B = 0;
         
-        let shader_program = create_shader_program(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE);
+        let shader_program = create_shader_program(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE_UNIFORM);
         let shader_program_2 =
             create_shader_program(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE_YELLOW);
     
@@ -66,18 +96,24 @@ impl App for Dual {
         Dual{vertices_a, vertices_b, shader_program, shader_program_2, VBO, VBO_B, VAO, VAO_B}
     }
 
-    fn render(&mut self) {
+    fn render(&mut self, time_value: f64) {
         unsafe {
             gl::ClearColor(0.2, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
-
             gl::UseProgram(self.shader_program);
+
+            let green_value = time_value.sin() / 2.0 + 0.5;
+            let our_color = CString::new("ourColor").unwrap();
+            let vertex_color_location = gl::GetUniformLocation(self.shader_program, our_color.as_ptr());
+            println!("{green_value}");
+            gl::Uniform4f(vertex_color_location, 0.0, green_value as f32, 0.0, 1.0);
+            
             gl::BindVertexArray(self.VAO);
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
             gl::BindVertexArray(self.VAO_B);
             gl::UseProgram(self.shader_program_2);
 
-            // gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
     }

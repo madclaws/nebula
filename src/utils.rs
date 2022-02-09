@@ -12,7 +12,7 @@ use std::ptr;
 
 pub trait App {
     fn create() -> Self;
-    fn render(&mut self);
+    fn render(&mut self, time_value: f64);
 }
 
 pub fn create_shader_program(vertex_shader_src: &str, fragment_shader_src: &str) -> u32 {
