@@ -10,6 +10,7 @@ use std::str;
 mod utils;
 use utils::App;
 mod dual;
+mod shader;
 use std::sync::mpsc::Receiver;
 // use dual;
 const SCREEN_WIDTH: u32 = 800;

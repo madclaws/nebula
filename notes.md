@@ -11,3 +11,7 @@
 - All the rendering exercises will be their own module
 - Want to render some module, add it to main and run it..
 - May be we can have a trait implementation as `App`, that have `run` and all.
+
+## 2022-02-11 21:31:13
+
+- We are passing the color for wach vertex also a 2 floats in VBO + VAO
