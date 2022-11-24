@@ -33,4 +33,5 @@ So we can make a file mod.rs, and them import other modules inside foo in mod.rs
 - femo commit test 3
 - femo commit test 4
 - femo commit test 5
-- femo commit test 6 
+- femo commit test 6
+- femo commit test 7 
