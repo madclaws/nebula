@@ -29,3 +29,4 @@ So we can make a file mod.rs, and them import other modules inside foo in mod.rs
 ##  2022-11-24 16:56:58
 
 - femo commit test 1
+- femo commit test 2
